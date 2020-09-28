@@ -2,6 +2,7 @@
 
 var_dump_file('Старт программы');
 
+include 'config/config.php';
 
 // Connect db
 $db = '';
