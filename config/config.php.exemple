@@ -1,0 +1,9 @@
+<?php
+
+// Config
+define('HOST',      'localhost');
+define('DB_NAME',   'db_name');
+define('USER',      'user_name');
+define('PASS',      'password');
+define('TOKEN',     'id_bot:key_bot');
+// Config
