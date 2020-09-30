@@ -3,6 +3,7 @@
 var_dump_file('Старт программы');
 
 include 'config/config.php';
+require_once 'core/telegram.php';
 
 // Connect db
 $db = '';
@@ -28,17 +29,17 @@ if ($message == 'test') {
         'text' => 'Так и задумано',
         'chat_id' => $data['chat']['id'],
     ];
-    sendBot($method, $send_data);
+    $this->sendBot($method, $send_data);
 } elseif (preg_match('/^(купить)([0-9a-zа-я ,.]+)/u', $message, $need_buy)) {
-    $return = add_need_buy($db, $need_buy[2], $data['chat']['id']);
+    $return = $this->add_need_buy($db, $need_buy[2], $data['chat']['id']);
     $method = 'sendMessage';
     $send_data = [
         'text' => $return,
         'chat_id' => $data['chat']['id'],
     ];
-    sendBot($method, $send_data);
+    $this->sendBot($method, $send_data);
 } elseif (preg_match('/^(что купить)/u', $message)) {
-    $returns = get_buy($db, $data['chat']['id']);
+    $returns = $this->get_buy($db, $data['chat']['id']);
 
     $method = 'sendMessage';
     if (!$returns) {
@@ -70,20 +71,20 @@ if ($message == 'test') {
         ];
     }
 
-    sendBot($method, $send_data);
+    $this->sendBot($method, $send_data);
 } elseif (preg_match('/^([\d]+):/u', $message, $bay)) {
     // переводим полученный
-    $return = update_buy($db, $bay[1], $data['chat']['id'], 1);
+    $return = $this->update_buy($db, $bay[1], $data['chat']['id'], 1);
     if ($return) {
         $method = 'sendMessage';
         $send_data = [
             'text' => "{$return}",
             'chat_id' => $data['chat']['id']
         ];
-        sendBot($method, $send_data);
+        $this->sendBot($method, $send_data);
     }
 } elseif (preg_match('/^(куплено|корзина)/u', $message)) {
-    $returns = get_buy($db, $data['chat']['id'], 1);
+    $returns = $this->get_buy($db, $data['chat']['id'], 1);
 
     $method = 'sendMessage';
     if ($returns) {
@@ -123,10 +124,9 @@ if ($message == 'test') {
         ];
     }
 
-
-    sendBot($method, $send_data);
+    $this->sendBot($method, $send_data);
 } elseif (preg_match('/^(архив)/u', $message)) {
-    $return = update_buy($db, '', $data['chat']['id'], 2);
+    $return = $this->update_buy($db, '', $data['chat']['id'], 2);
 
     if ($return) {
         $method = 'sendMessage';
@@ -134,87 +134,13 @@ if ($message == 'test') {
             'text' => "{$return}",
             'chat_id' => $data['chat']['id']
         ];
-        sendBot($method, $send_data);
+        $this->sendBot($method, $send_data);
     }
-}
-
-function sendBot($method, $data, $header = [])
-{
-    $curl = curl_init();
-    curl_setopt_array($curl, [
-        CURLOPT_POST => 1,
-        CURLOPT_HEADER => 0,
-        CURLOPT_RETURNTRANSFER => 1,
-        CURLOPT_URL => 'https://api.telegram.org/bot' . TOKEN . '/' . $method,
-        CURLOPT_POSTFIELDS => json_encode($data),
-        CURLOPT_HTTPHEADER => array_merge(array("Content-Type: application/json"), $header)
-    ]);
-
-    $result = curl_exec($curl);
-    curl_close($curl);
-    return (json_decode($result, 1) ? json_decode($result, 1) : $result);
 }
 
 function var_dump_file($text)
 {
     file_put_contents('file.txt', '$data: ' . print_r($text, 1) . "\n", FILE_APPEND);
-}
-
-/**
- * @param $db
- * @param $title
- * @param $id_chat
- * @return string
- */
-function add_need_buy($db, string $title, $id_chat)
-{
-    if (empty($title) && empty($id_chat)) {
-        return 'Надо назвать то что собираетесь купить';
-    }
-    try {
-        $db->query("INSERT INTO need_buy SET title = '{$title}', id_chat = '{$id_chat}'");
-        return 'В покупки записаны следующие товары: ' . $title;
-    } catch (PDOException $e) {
-        var_dump_file('Что-то пошло не так__ ' . $e->getMessage());
-        return 'Что-то пошло не так: 0001';
-    }
-
-}
-
-function get_buy($db, $id_chat, $status = 0)
-{
-    try {
-        $results = array();
-        foreach ($db->query("SELECT * FROM need_buy WHERE id_chat = '{$id_chat}' AND status = '{$status}'") as $row) {
-            $results[$row['id']] = $row['title'];
-        }
-        return $results;
-    } catch (PDOException $e) {
-        var_dump_file('Что-то пошло не так__ ' . $e->getMessage());
-        return 'Что-то пошло не так__';
-    }
-}
-
-function update_buy($db, $id = null, $id_chat, $status = 0)
-{
-    try {
-        $date = '';
-        $where_id = '';
-        $where_status = '';
-        if ($status == 2) {
-            $date = ', `date_zip` = ' . time();
-        }
-        if ($id) {
-            $where_id = 'AND `id` =' . $id;
-        } else {
-            $where_status = 'AND `status` = 1';
-        }
-        $db->query("UPDATE `need_buy` SET `status` = '{$status}'{$date} WHERE 1 {$where_id} {$where_status} AND id_chat = {$id_chat}; ");
-        return '';
-    } catch (PDOException $e) {
-        var_dump_file('Что-то пошло не так__ ' . $e->getMessage());
-        return 'Что-то пошло не так: 0002';
-    }
 }
 
 echo '<pre>';
