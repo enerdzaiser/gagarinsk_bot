@@ -22,11 +22,11 @@ class telegram
 
     /**
      * @param $db
-     * @param $title
-     * @param $id_chat
+     * @param string $title
+     * @param int $id_chat
      * @return string
      */
-    function add_need_buy($db, string $title, $id_chat)
+    function add_need_buy($db, string $title, int $id_chat)
     {
         if (empty($title) && empty($id_chat)) {
             return 'Надо назвать то что собираетесь купить';
@@ -35,13 +35,18 @@ class telegram
             $db->query("INSERT INTO need_buy SET title = '{$title}', id_chat = '{$id_chat}'");
             return 'В покупки записаны следующие товары: ' . $title;
         } catch (PDOException $e) {
-            var_dump_file('Что-то пошло не так__ ' . $e->getMessage());
-            return 'Что-то пошло не так: 0001';
+            $this->sendBot('sendMessage', array('text' => 'Какие то проблемы с запросом add_need_buy:' . $e->getMessage(), 'chat_id' => '563626742'));
+            return 'Какие то проблемы, подождите пока @enerdzaiser их решит, извините за мои кривые руки(';
         }
-
     }
 
-    function get_buy($db, $id_chat, $status = 0)
+    /**
+     * @param $db
+     * @param int $id_chat
+     * @param int $status
+     * @return array|string
+     */
+    function get_buy($db, int $id_chat, $status = 0)
     {
         try {
             $results = array();
@@ -50,8 +55,37 @@ class telegram
             }
             return $results;
         } catch (PDOException $e) {
-            var_dump_file('Что-то пошло не так__ ' . $e->getMessage());
-            return 'Что-то пошло не так__';
+            $this->sendBot('sendMessage', array('text' => 'Какие то проблемы с запросом get_buy:' . $e->getMessage(), 'chat_id' => '563626742'));
+            return 'Какие то проблемы, подождите пока @enerdzaiser их решит, извините за мои кривые руки(';
+        }
+    }
+
+    /**
+     * @param $db
+     * @param null|int $id
+     * @param int $id_chat
+     * @param int $status
+     * @return string|null
+     */
+    function update_buy($db, int $id_chat, $id = null, $status = 0)
+    {
+        try {
+            $date = '';
+            $where_id = '';
+            $where_status = '';
+            if ($status == 2) {
+                $date = ', `date_zip` = ' . time();
+            }
+            if ($id) {
+                $where_id = 'AND `id` =' . $id;
+            } else {
+                $where_status = 'AND `status` = 1';
+            }
+            $db->query("UPDATE `need_buy` SET `status` = '{$status}'{$date} WHERE 1 {$where_id} {$where_status} AND id_chat = {$id_chat}; ");
+            return null;
+        } catch (PDOException $e) {
+            $this->sendBot('sendMessage', array('text' => 'Какие то проблемы с запросом update_buy:' . $e->getMessage(), 'chat_id' => '563626742'));
+            return 'Какие то проблемы, подождите пока @enerdzaiser их решит, извините за мои кривые руки(';
         }
     }
 }
