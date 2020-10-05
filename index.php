@@ -27,7 +27,7 @@ if ($message == 'test') {
         'chat_id' => $data['chat']['id'],
     ];
     $t->sendBot($method, $send_data);
-} elseif (preg_match('/^(купить)([0-9a-zа-я ,.]+)/u', $message, $need_buy)) {
+} elseif (preg_match('/^(купить)([0-9a-zа-я ,.-]+)/u', $message, $need_buy)) {
     $return = $t->add_need_buy($db, $need_buy[2], $data['chat']['id']);
     $method = 'sendMessage';
     $send_data = [
