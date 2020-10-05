@@ -32,7 +32,9 @@ class telegram
             return 'Надо назвать то что собираетесь купить';
         }
         try {
-            $db->query("INSERT INTO need_buy SET title = '{$title}', id_chat = '{$id_chat}'");
+            $stmt = $db->prepare("INSERT INTO need_buy SET `title` = ?, `id_chat` = ?");
+            $stmt->execute([$title, $id_chat]);
+
             return 'В покупки записаны следующие товары: ' . $title;
         } catch (PDOException $e) {
             $this->sendBot('sendMessage', array('text' => 'Какие то проблемы с запросом add_need_buy:' . $e->getMessage(), 'chat_id' => '563626742'));
@@ -50,9 +52,14 @@ class telegram
     {
         try {
             $results = array();
-            foreach ($db->query("SELECT * FROM need_buy WHERE id_chat = '{$id_chat}' AND status = '{$status}'") as $row) {
+
+            $stmt = $db->prepare("SELECT * FROM need_buy WHERE `id_chat` = ? AND `status` = ?");
+            $stmt->execute([$id_chat, $status]);
+
+            foreach ($stmt->fetch() as $row) {
                 $results[$row['id']] = $row['title'];
             }
+
             return $results;
         } catch (PDOException $e) {
             $this->sendBot('sendMessage', array('text' => 'Какие то проблемы с запросом get_buy:' . $e->getMessage(), 'chat_id' => '563626742'));
