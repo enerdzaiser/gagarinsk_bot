@@ -30,12 +30,11 @@ class telegram
 
 
     /**
-     * @param $db
      * @param string $title
      * @param int $id_chat
      * @return string
      */
-    function add_need_buy($db, string $title, int $id_chat)
+    function add_need_buy(string $title, int $id_chat)
     {
         if (empty($title) && empty($id_chat)) {
             return 'Надо назвать то что собираетесь купить';
@@ -52,12 +51,11 @@ class telegram
     }
 
     /**
-     * @param $db
      * @param int $id_chat
      * @param int $status
      * @return array|string
      */
-    function get_buy($db, int $id_chat, $status = 0)
+    function get_buy(int $id_chat, $status = 0)
     {
         try {
             $results = array();
@@ -77,13 +75,12 @@ class telegram
     }
 
     /**
-     * @param $db
-     * @param null|int $id
      * @param int $id_chat
+     * @param null|int $id
      * @param int $status
      * @return string|null
      */
-    function update_buy($db, int $id_chat, $id = null, $status = 0)
+    function update_buy(int $id_chat, int $id = null, int $status = 0)
     {
         try {
             $date = '';

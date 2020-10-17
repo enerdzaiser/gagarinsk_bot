@@ -20,7 +20,7 @@ if ($message == 'test') {
     ];
     $t->sendBot($method, $send_data);
 } elseif (preg_match('/^(купить)([0-9a-zа-я ,.-]+)/u', $message, $need_buy)) {
-    $return = $t->add_need_buy($db, $need_buy[2], $data['chat']['id']);
+    $return = $t->add_need_buy($need_buy[2], $data['chat']['id']);
     $method = 'sendMessage';
     $send_data = [
         'text' => $return,
@@ -28,7 +28,7 @@ if ($message == 'test') {
     ];
     $t->sendBot($method, $send_data);
 } elseif (preg_match('/^(что купить)/u', $message)) {
-    $returns = $t->get_buy($db, $data['chat']['id']);
+    $returns = $t->get_buy($data['chat']['id']);
     $method = 'sendMessage';
     if (!$returns) {
         $send_data = [
@@ -61,7 +61,7 @@ if ($message == 'test') {
     $t->sendBot($method, $send_data);
 } elseif (preg_match('/^([\d]+):/u', $message, $bay)) {
     // переводим полученный товары в статус куплено
-    $return = $t->update_buy($db, $data['chat']['id'], $bay[1], 1);
+    $return = $t->update_buy($data['chat']['id'], $bay[1], 1);
     if ($return) {
         $method = 'sendMessage';
         $send_data = [
@@ -71,7 +71,7 @@ if ($message == 'test') {
         $t->sendBot($method, $send_data);
     }
 } elseif (preg_match('/^(куплено|корзина)/u', $message)) {
-    $returns = $t->get_buy($db, $data['chat']['id'], 1);
+    $returns = $t->get_buy($data['chat']['id'], 1);
 
     $method = 'sendMessage';
     if ($returns) {
@@ -113,7 +113,7 @@ if ($message == 'test') {
 
     $t->sendBot($method, $send_data);
 } elseif (preg_match('/^(архив)/u', $message)) {
-    $return = $t->update_buy($db, $data['chat']['id'], '', 2);
+    $return = $t->update_buy($data['chat']['id'], null, 2);
 
     if ($return) {
         $method = 'sendMessage';
