@@ -3,14 +3,6 @@ require_once 'config/config.php';
 require_once 'core/telegram.php';
 
 $t = new telegram();
-// Connect db
-$db = '';
-try {
-    $db = new PDO("mysql:host=" . HOST . ";dbname=" . DB_NAME . ";charset=UTF8", USER, PASS);
-} catch (PDOException $e) {
-    $t->sendBot('sendMessage', array('text' => 'Какие то проблемы с подключением : 0001', 'chat_id' => '563626742'));
-}
-// Connect db
 
 //обработка всех входящих запросов
 $data = '';

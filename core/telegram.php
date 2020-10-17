@@ -2,6 +2,15 @@
 
 class telegram
 {
+    public $db = '';
+
+    function __construct()
+    {
+        // Connect db
+        $this->db = new PDO("mysql:host=" . HOST . ";dbname=" . DB_NAME . ";charset=UTF8", USER, PASS);
+        // Connect db
+    }
+
     function sendBot($method, $data, $header = [])
     {
         $curl = curl_init();
