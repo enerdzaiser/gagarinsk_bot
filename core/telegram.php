@@ -44,7 +44,7 @@ class telegram
                 ->execute([$title, $id_chat]);
             return 'В покупки записаны следующие товары: ' . $title;
         } catch (PDOException $e) {
-            $this->sendBot('sendMessage', array('text' => 'Какие то проблемы с запросом add_need_buy:' . $e->getMessage(), 'chat_id' => '563626742'));
+            $this->sendBot('sendMessage', array('text' => 'Какие то проблемы с запросом add_need_buy:' . $e->getMessage(), 'chat_id' => ADMIN_CHAT));
             return 'Какие то проблемы, подождите пока @enerdzaiser их решит, извините за мои кривые руки(';
         }
     }
@@ -89,8 +89,9 @@ class telegram
         $stmt->execute([':status' => $status, ':id_chat' => $id_chat,]);
 
         if ($stmt->errorCode() != '00000') {
-            $this->sendBot('sendMessage', array('text' => 'Какие то проблемы с запросом update_buy: ' . $stmt->errorCode(), 'chat_id' => '563626742'));
+            $this->sendBot('sendMessage', array('text' => 'Какие то проблемы с запросом update_buy: ' . $stmt->errorCode(), 'chat_id' => ADMIN_CHAT));
             return 'Какие то проблемы, подождите пока @enerdzaiser их решит, извините за мои кривые руки(';
         }
+        return null;
     }
 }
