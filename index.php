@@ -1,132 +1,145 @@
 <?php
 require_once 'config/config.php';
 require_once 'core/telegram.php';
+require_once 'core/log.php';
 
 $t = new telegram();
 
 //обработка всех входящих запросов
-$data = '';
 $data = json_decode(file_get_contents('php://input'), TRUE);
 
-$data = $data['callback_query'] ? $data['callback_query'] : $data['message'];
+$data_message = $data['message'] ? $data['message'] : $data['callback_query'];
 
-$message = mb_strtolower(($data['text'] ? $data['text'] : $data['data']));
+$message = mb_strtolower(($data_message['text'] ? $data_message['text'] : $data_message['data']));
 
-if ($message == 'test') {
-    $method = 'sendMessage';
-    $send_data = [
-        'text' => 'Так и задумано',
-        'chat_id' => $data['chat']['id'],
-    ];
-    $t->sendBot($method, $send_data);
-} elseif (preg_match('/^(купить)([0-9a-zа-я ,.-]+)/u', $message, $need_buy)) {
-    $return = $t->add_need_buy($need_buy[2], $data['chat']['id']);
-    $method = 'sendMessage';
-    $send_data = [
-        'text' => $return,
-        'chat_id' => $data['chat']['id'],
-    ];
-    $t->sendBot($method, $send_data);
-} elseif (preg_match('/^(что купить)/u', $message)) {
-    $returns = $t->get_buy($data['chat']['id']);
-    $method = 'sendMessage';
-    if (!$returns) {
+$chat_id = $data_message['chat']['id'] ? $data_message['chat']['id'] : $data_message['message']['chat']['id'];
+
+switch ($message) {
+    case 'test':
         $send_data = [
-            'text' => "***Список пуст***\nДля того чтобы пополнить список покупок добавьте то что нужно купить командой \n'купить колы х2'",
-            'chat_id' => $data['chat']['id'],
+            'text' => 'Так и задумано',
+            'chat_id' => $chat_id,
         ];
-    } else {
-        $a = 0;
-        $b = 3; // указываем количество столбцов
-        $c = 0;
-        $return = array();
-        foreach ($returns as $key => $value) {
-            if (!empty($a) && is_int($a / $b)) {
-                $c++;
-            }
-            $return['keyboard'][$c][] = ['text' => $key . ':' . $value];
-
-            $return['text'] .= $key . ':' . $value . "\n";
-            $a++;
-        }
+        $t->sendMessage($send_data);
+        break;
+    case 'id':
         $send_data = [
-            'text' => "Список покупок\n{$return['text']}",
-            'chat_id' => $data['chat']['id'],
-            'reply_markup' => [
-                'resize_keyboard' => true,
-                'keyboard' => $return['keyboard']
-            ]
+            'text' => $data_message['from']['id'],
+            'chat_id' => $chat_id,
         ];
-    }
-    $t->sendBot($method, $send_data);
-} elseif (preg_match('/^([\d]+):/u', $message, $bay)) {
-    // переводим полученный товары в статус куплено
-    $return = $t->update_buy($data['chat']['id'], $bay[1], 1);
-    if ($return) {
-        $method = 'sendMessage';
+        $t->sendMessage($send_data);
+        break;
+    case 'chat':
         $send_data = [
-            'text' => "{$return}",
-            'chat_id' => $data['chat']['id']
+            'text' => $chat_id,
+            'chat_id' => $chat_id,
         ];
-        $t->sendBot($method, $send_data);
-    }
-} elseif (preg_match('/^(куплено|корзина)/u', $message)) {
-    $returns = $t->get_buy($data['chat']['id'], 1);
-
-    $method = 'sendMessage';
-    if ($returns) {
-        $a = 0;
-        $b = 3; // указываем количество столбцов
-        $c = 0;
-        $return = array();
-        foreach ($returns as $key => $value) {
-            if (!empty($a) && is_int($a / $b)) {
-                $c++;
-            }
-            $return['keyboard'][$c][] = ['text' => $key . ':' . $value];
-            $return['text'] .= $key . ':' . $value . "\n";
-            $a++;
-        }
-
+        $t->sendMessage($send_data);
+        break;
+    case (bool)preg_match('/^(купить)([0-9a-zа-я ,.-]+)/u', $message, $need_buy):
+        $return = $t->add_need_buy($need_buy[2], $chat_id);
         $send_data = [
-            'text' => "Список покупок\n{$return['text']}",
-            'chat_id' => $data['chat']['id'],
-            'reply_markup' => [
-                'resize_keyboard' => true,
-                'keyboard' => $return['keyboard']
-            ]
+            'text' => $return,
+            'chat_id' => $chat_id,
         ];
-    } else {
-        $send_data = [
-            'text' => "***Список пуст***\nЧтобы пополнить список воспользуйтесь командой \n'Что купить?'\nЗатем кликните на товар из списка, чтобы положить его в корзину",
-            'chat_id' => $data['chat']['id'],
-            'reply_markup' => [
-                'resize_keyboard' => true,
-                'keyboard' => [
-                    [
-                        ['text' => 'Что купить?']
-                    ]
+        $t->sendMessage($send_data);
+        break;
+    case (bool)preg_match('/^(что купить)/u', $message):
+        $returns = $t->get_buy($chat_id);
+        if (!$returns) {
+            $send_data = [
+                'text' => "***Список пуст***\nДля того чтобы пополнить список покупок добавьте то что нужно купить командой \n'купить колы х2'",
+                'chat_id' => $chat_id,
+                'reply_markup' => [
+                    'inline_keyboard' => common_inline_keyboard()
                 ]
+            ];
+        } else {
+            $return = return_item_list($returns, 'buy');
+
+            $return['keyboard'][] = what_buy();
+            $return['keyboard'][] = buy_and_cart();
+
+            $send_data = [
+                'text' => "
+*** Список покупок ***:\n
+- Выберите предметы которые вы собираетесь купить\n
+                ",
+                'chat_id' => $chat_id,
+                'reply_markup' => [
+                    'inline_keyboard' => $return['keyboard']
+                ]
+            ];
+        }
+        $t->sendMessage($send_data);
+        break;
+    case (bool)preg_match('/^([\d]+):buy/u', $message, $buy):
+        $return = $t->update_buy($chat_id, $buy[1], 1);
+        if ($return) {
+            $send_data = [
+                'text' => "{$return}",
+                'chat_id' => $chat_id
+            ];
+            $t->sendMessage($send_data);
+        }
+        break;
+    case (bool)preg_match('/^([\d]+):del/u', $message, $buy):
+        $return = $t->update_buy($chat_id, $buy[1], 0);
+        if ($return) {
+            $send_data = [
+                'text' => "{$return}",
+                'chat_id' => $chat_id
+            ];
+            $t->sendMessage($send_data);
+        }
+        break;
+    case (bool)preg_match('/^(куплено|корзина)/u', $message):
+        $returns = $t->get_buy($chat_id, 1);
+
+        if ($returns) {
+            $return = return_item_list($returns, 'del');
+
+            $return['keyboard'][] = save_buy();
+
+            $send_data = [
+                'text' => "
+*** Корзина ***:\n
+- Если какой то товар на самом деле не куплен\n
+- Если все правильно, то нажмите кнопку архив 🧺
+                ",
+                'chat_id' => $chat_id,
+                'reply_markup' => [
+                    'inline_keyboard' => $return['keyboard']
+                ]
+            ];
+        } else {
+            $send_data = [
+                'text' => "*** Список пуст ***\nЧтобы пополнить список воспользуйтесь командой \n'Что купить?'\nЗатем кликните на товар из списка, чтобы положить его в корзину",
+                'chat_id' => $chat_id,
+                'reply_markup' => [
+                    'inline_keyboard' => common_inline_keyboard()
+                ]
+            ];
+        }
+
+        $t->sendMessage($send_data);
+        break;
+    case 'архив':
+        $return = $t->update_buy($chat_id, null, 2);
+
+        $send_data = [
+            'text' => '*** Все сохранено ***',
+            'chat_id' => $chat_id,
+            'reply_markup' => [
+                'inline_keyboard' => common_inline_keyboard()
             ]
         ];
-    }
+        $t->sendMessage($send_data);
 
-    $t->sendBot($method, $send_data);
-} elseif (preg_match('/^(архив)/u', $message)) {
-    $return = $t->update_buy($data['chat']['id'], null, 2);
-
-    if ($return) {
-        $method = 'sendMessage';
+        break;
+    case (bool)preg_match('/^(\/start|help|хелп|помощь|что делать)/u', $message):
         $send_data = [
-            'text' => "{$return}",
-            'chat_id' => $data['chat']['id']
-        ];
-        $t->sendBot($method, $send_data);
-    }
-} elseif (preg_match('/^(\/start|help|хелп|помощь|что делать)/u', $message)) {
-    $method = 'sendMessage';
-    $send_data = [
-        'text' => "
+            'text' => "
 Возможности:
 Помощь в покупках
     1. Чтобы пополнить список планируемых покупок, воспользуйтесь командой 'купить хлебобулочное изделие'
@@ -143,19 +156,63 @@ if ($message == 'test') {
 
 Предложения по улучшению бота принимаются в личку @enerdzaiser
         ",
-        'chat_id' => $data['chat']['id'],
-        'reply_markup' => [
-            'resize_keyboard' => true,
-            'keyboard' => [
-                [
-                    ['text' => 'Что купить?']
-                ],
-                [
-                    ['text' => 'Куплено'],
-                    ['text' => 'Корзина']
-                ]
+            'chat_id' => $chat_id,
+            'reply_markup' => [
+                'inline_keyboard' => common_inline_keyboard(),
             ]
-        ]
+        ];
+        $t->sendMessage($send_data);
+        break;
+}
+
+function common_inline_keyboard () : array
+{
+    return [
+        what_buy(),
+        buy_and_cart()
     ];
-    $t->sendBot($method, $send_data);
+}
+
+function what_buy() : array
+{
+    return [
+        [
+            'text' => '❓ Что купить? ❓',
+            'callback_data' => 'Что купить?'
+        ],
+    ];
+}
+
+function buy_and_cart() : array
+{
+    return [
+        [
+            'text' => '✔ Куплено / Корзина ✔ ',
+            'callback_data' => 'Куплено',
+            'left'
+        ],
+    ];
+}
+
+function save_buy() : array
+{
+    return [
+        [
+            'text' => '🧺 Архив 🧺',
+            'callback_data' => 'архив'
+        ],
+    ];
+}
+
+function return_item_list($returns, $action) : array
+{
+    $return = [];
+    $action == 'buy' ? $smile = '✔ ' : $smile = '✖ ';
+    foreach ($returns as $key => $value) {
+        $return['keyboard'][][] = [
+            'text' => $smile . $value,
+            'callback_data' => $key . ':' . $action
+        ];
+    }
+    return $return;
 }

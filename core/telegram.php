@@ -28,13 +28,18 @@ class telegram
         return (json_decode($result, 1) ? json_decode($result, 1) : $result);
     }
 
+    function sendMessage($send_data)
+    {
+        $this->sendBot('sendMessage', $send_data);
+    }
+
 
     /**
      * @param string $title
      * @param int $id_chat
      * @return string
      */
-    function add_need_buy(string $title, int $id_chat)
+    function add_need_buy(string $title, int $id_chat) : string
     {
         if (empty($title) && empty($id_chat)) {
             return 'Надо назвать то что собираетесь купить';
@@ -52,9 +57,9 @@ class telegram
     /**
      * @param int $id_chat
      * @param int $status
-     * @return array|string
+     * @return array
      */
-    function get_buy(int $id_chat, $status = 0)
+    function get_buy(int $id_chat, int $status = 0) : array
     {
         $results = array();
         $stmt = $this->db->prepare("SELECT * FROM need_buy WHERE id_chat = ? AND status = ?");
@@ -72,7 +77,7 @@ class telegram
      * @param int $status
      * @return string|null
      */
-    function update_buy(int $id_chat, int $id = null, int $status = 0)
+    function update_buy(int $id_chat, int $id = null, int $status = 0) : string
     {
         $date = '';
         $where_id = '';
@@ -92,6 +97,6 @@ class telegram
             $this->sendBot('sendMessage', array('text' => 'Какие то проблемы с запросом update_buy: ' . $stmt->errorCode(), 'chat_id' => ADMIN_CHAT));
             return 'Какие то проблемы, подождите пока @enerdzaiser их решит, извините за мои кривые руки(';
         }
-        return null;
+        return '';
     }
 }
